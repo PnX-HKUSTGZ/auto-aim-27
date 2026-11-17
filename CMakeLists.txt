@@ -40,7 +40,6 @@ find_package(Ceres REQUIRED)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux"
    AND Ceres_DIR STREQUAL _sp_vision_system_ceres_dir)
   list(PREPEND CMAKE_BUILD_RPATH "/usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}")
-  add_link_options("LINKER:--disable-new-dtags")
 endif()
 
 # For a custom dependency installation, pass -DCMAKE_PREFIX_PATH=<install-prefix>.
