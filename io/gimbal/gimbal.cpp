@@ -98,7 +98,10 @@ Gimbal::Gimbal(const std::string & config_path)
 
 Gimbal::~Gimbal()
 {
-  quit_ = true;
+  {
+    std::lock_guard<std::mutex> lock(tx_mutex_);
+    quit_ = true;
+  }
   tx_cv_.notify_all();
   if (tx_thread_.joinable()) tx_thread_.join();
   if (read_thread_.joinable()) read_thread_.join();
@@ -534,12 +537,15 @@ void Gimbal::tx_loop()
 
     if (quit_) break;
 
-    if (vision_packet) write_packet(*vision_packet);
-    if (nav_packet) write_packet(*nav_packet);
-    if (decision_packet) {
-      write_unified_frame(
-        kFrameTypeDecisionCommand, reinterpret_cast<const uint8_t *>(&*decision_packet),
-        sizeof(DecisionCommand));
+    {
+      std::lock_guard<std::mutex> serial_lock(serial_mutex_);
+      if (vision_packet) write_packet(*vision_packet);
+      if (nav_packet) write_packet(*nav_packet);
+      if (decision_packet) {
+        write_unified_frame(
+          kFrameTypeDecisionCommand, reinterpret_cast<const uint8_t *>(&*decision_packet),
+          sizeof(DecisionCommand));
+      }
     }
   }
 
@@ -604,7 +610,7 @@ bool Gimbal::write_unified_frame(uint8_t type, const uint8_t * payload, uint16_t
 
 void Gimbal::reconnect()
 {
-  std::lock_guard<std::mutex> reconnect_lock(reconnect_mutex_);
+  std::lock_guard<std::mutex> serial_lock(serial_mutex_);
   int max_retry_count = 10;
   for (int i = 0; i < max_retry_count && !quit_; ++i) {
     tools::logger()->warn("[Gimbal] Reconnecting serial, attempt {}/{}...", i + 1, max_retry_count);

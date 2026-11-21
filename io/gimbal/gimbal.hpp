@@ -202,7 +202,7 @@ private:
   std::atomic<bool> quit_ = false;
   std::atomic<bool> reconnect_requested_ = false;
   mutable std::mutex state_mutex_;
-  std::mutex reconnect_mutex_;
+  std::mutex serial_mutex_;
 
   GimbalToVision rx_data_{};
 
